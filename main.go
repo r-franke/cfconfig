@@ -37,6 +37,7 @@ func init() {
 
 // LoadEnvironment loads either a dev or cf environment.
 // To set up a dev environment provide the dev fallbacks that you wish to use then.
+// If no dev fallback is specified then it will look in the os environment variables.
 func LoadEnvironment(devAppName string, req Requested) Env {
 	if _, found := os.LookupEnv("VCAP_SERVICES"); found {
 		env = loadHaasEnvironment(req)
@@ -77,8 +78,19 @@ func loadDevEnvironment(devAppName string, requested Requested) Env {
 	env.AppName = devAppName
 
 	for _, req := range requested {
-		internalInfoLogger.Printf("Loading %s env variable.", req.Key)
-		env.Vars[req.Key] = req.DevAlt
+		if req.DevAlt == "" {
+			var found bool
+			var value string
+			internalInfoLogger.Printf("Loading %s env variable from OS.", req.Key)
+			value, found = os.LookupEnv(req.Key)
+			if !found {
+				internalErrorLogger.Fatalf("%s env variable is missing! Cannot start..", req.Key)
+			}
+			env.Vars[req.Key] = value
+		} else {
+			internalInfoLogger.Printf("Loading %s env variable from DevAlt", req.Key)
+			env.Vars[req.Key] = req.DevAlt
+		}
 	}
 
 	return env
