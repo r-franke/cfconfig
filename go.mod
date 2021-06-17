@@ -1,4 +1,4 @@
-module cfconfig
+module github.com/r-franke/cfconfig
 
 go 1.16
 
