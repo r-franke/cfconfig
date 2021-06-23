@@ -8,6 +8,7 @@ import (
 
 type Env struct {
 	AppName string
+	RMQ     string
 	Vars    map[string]string
 }
 
@@ -68,6 +69,17 @@ func loadHaasEnvironment(requested Requested) Env {
 		}
 		env.Vars[req.Key] = value
 	}
+
+	rabbitVars, err := appEnv.Services.WithLabel("p.rabbitmq")
+	if err != nil {
+		return env
+	}
+	InfoLogger.Println("Rabbitmq found, connectionstring available under env.RMQ ")
+	if len(rabbitVars) > 1 {
+		InfoLogger.Println("Multiple Rabbit bindings discovered. Loading first one by default.")
+	}
+	credentials := rabbitVars[0].Credentials
+	env.RMQ = credentials["uri"].(string)
 
 	return env
 }
