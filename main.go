@@ -59,15 +59,21 @@ func loadHaasEnvironment(requested Requested) Env {
 
 	env.AppName = appEnv.Name
 
+	var missingVars []string
+
 	for _, req := range requested {
 		var found bool
 		var value string
 		internalInfoLogger.Printf("Loading %s env variable.", req.Key)
 		value, found = os.LookupEnv(req.Key)
 		if !found {
-			internalErrorLogger.Fatalf("%s env variable is missing! Cannot start..", req.Key)
+			missingVars = append(missingVars, req.Key)
 		}
 		env.Vars[req.Key] = value
+	}
+
+	if len(missingVars) > 0 {
+		internalErrorLogger.Fatalf("Missing environment variables:\n%v\nCannot start..", missingVars)
 	}
 
 	rabbitVars, err := appEnv.Services.WithLabel("p.rabbitmq")
@@ -89,6 +95,7 @@ func loadDevEnvironment(devAppName string, requested Requested) Env {
 
 	env.AppName = devAppName
 
+	var missingVars []string
 	for _, req := range requested {
 		if req.DevAlt == "" {
 			var found bool
@@ -96,13 +103,17 @@ func loadDevEnvironment(devAppName string, requested Requested) Env {
 			internalInfoLogger.Printf("Loading %s env variable from OS.", req.Key)
 			value, found = os.LookupEnv(req.Key)
 			if !found {
-				internalErrorLogger.Fatalf("%s env variable is missing! Cannot start..", req.Key)
+				missingVars = append(missingVars, req.Key)
 			}
 			env.Vars[req.Key] = value
 		} else {
 			internalInfoLogger.Printf("Loading %s env variable from DevAlt", req.Key)
 			env.Vars[req.Key] = req.DevAlt
 		}
+	}
+
+	if len(missingVars) > 0 {
+		internalErrorLogger.Fatalf("Missing environment variables:\n%v\nCannot start..", missingVars)
 	}
 
 	return env
