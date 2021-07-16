@@ -80,9 +80,9 @@ func loadHaasEnvironment(requested Requested) Env {
 	if err != nil {
 		return env
 	}
-	InfoLogger.Println("Rabbitmq found, connectionstring available under env.RMQ ")
+	internalInfoLogger.Println("Rabbitmq found, connectionstring available under env.RMQ ")
 	if len(rabbitVars) > 1 {
-		InfoLogger.Println("Multiple Rabbit bindings discovered. Loading first one by default.")
+		internalInfoLogger.Println("Multiple Rabbit bindings discovered. Loading first one by default.")
 	}
 	credentials := rabbitVars[0].Credentials
 	env.RMQ = credentials["uri"].(string)
