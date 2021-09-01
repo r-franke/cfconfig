@@ -7,9 +7,11 @@ import (
 )
 
 type Env struct {
-	AppName string
-	RMQ     string
-	Vars    map[string]string
+	AppName  string
+	RMQ      string
+	Postgres string
+	Vars     map[string]string
+	Services cfenv.Services
 }
 
 type Requested []Request
@@ -58,6 +60,7 @@ func loadHaasEnvironment(requested Requested) Env {
 	}
 
 	env.AppName = appEnv.Name
+	env.Services = appEnv.Services
 
 	var missingVars []string
 
@@ -77,15 +80,24 @@ func loadHaasEnvironment(requested Requested) Env {
 	}
 
 	rabbitVars, err := appEnv.Services.WithLabel("p.rabbitmq")
-	if err != nil {
-		return env
+	if err == nil {
+		internalInfoLogger.Println("Rabbitmq found, connectionstring available under env.RMQ ")
+		if len(rabbitVars) > 1 {
+			internalInfoLogger.Println("Multiple Rabbit bindings discovered. Loading first one by default.")
+		}
+		credentials := rabbitVars[0].Credentials
+		env.RMQ = credentials["uri"].(string)
 	}
-	internalInfoLogger.Println("Rabbitmq found, connectionstring available under env.RMQ ")
-	if len(rabbitVars) > 1 {
-		internalInfoLogger.Println("Multiple Rabbit bindings discovered. Loading first one by default.")
+
+	Postgres, err := appEnv.Services.WithLabel("postgres-db")
+	if err == nil {
+		internalInfoLogger.Println("Postgres found, connection string available under env.Postgres ")
+		if len(Postgres) > 1 {
+			internalInfoLogger.Println("Multiple Postgres bindings discovered. Loading first one by default.")
+		}
+		pg := Postgres[0].Credentials
+		env.Postgres = pg["uri"].(string)
 	}
-	credentials := rabbitVars[0].Credentials
-	env.RMQ = credentials["uri"].(string)
 
 	return env
 }
